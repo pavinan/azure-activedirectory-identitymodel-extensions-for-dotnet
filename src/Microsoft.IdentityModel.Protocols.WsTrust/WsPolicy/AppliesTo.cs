@@ -25,8 +25,6 @@
 //
 //------------------------------------------------------------------------------
 
-using System.Xml;
-using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Protocols.WsAddressing;
 
 #pragma warning disable 1591
@@ -37,11 +35,6 @@ namespace Microsoft.IdentityModel.Protocols.WsPolicy
     {
         public AppliesTo()
         {
-        }
-
-        public AppliesTo(EndpointReference endpointReference)
-        {
-            EndpointReference = endpointReference;
         }
 
         public EndpointReference EndpointReference { get; set; }

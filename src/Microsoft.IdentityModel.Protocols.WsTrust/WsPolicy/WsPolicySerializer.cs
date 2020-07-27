@@ -25,9 +25,7 @@
 //
 //------------------------------------------------------------------------------
 
-using System;
 using System.Xml;
-using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Protocols.WsAddressing;
 using Microsoft.IdentityModel.Xml;
 

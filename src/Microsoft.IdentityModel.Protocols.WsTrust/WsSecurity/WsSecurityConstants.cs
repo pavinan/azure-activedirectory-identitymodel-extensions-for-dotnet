@@ -28,43 +28,15 @@
 #pragma warning disable 1591
 
 using System.Collections.Generic;
-using Microsoft.IdentityModel.Protocols;
 
 namespace Microsoft.IdentityModel.Protocols.WsSecurity
 {
-    //public abstract class WsSecurityConstants<T> : WsSecurityConstants where T : new()
-    //{
-    //    private static T _instance;
-
-    //    public static T Instance
-    //    {
-    //        get
-    //        {
-    //            if (_instance == null)
-    //                _instance = new T();
-
-    //            return _instance;
-    //        }
-    //    }
-    //}
-
     /// <summary>
     /// Provides constants for WS-Security 1.0 and 1.1.
     /// </summary>
     public abstract class WsSecurityConstants : WsConstantsBase
     {
-        private static IList<string> _knownNamespaces = null;
-
-        public static IList<string> KnownNamespaces
-        {
-            get
-            {
-                if (_knownNamespaces == null)
-                    _knownNamespaces = new List<string> { "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" };
-
-                return _knownNamespaces;
-            }
-        }
+        public static readonly IList<string> KnownNamespaces = new List<string> { "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" };
 
         public static WsSecurity10Constants WsSecurity10 => new WsSecurity10Constants();
 
@@ -82,7 +54,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
     {
         public WsSecurity10Constants()
         {
-            EncodingTypes = WsSecurity10EncodingTypes.Instance;
+            EncodingTypes = WsSecurityEncodingTypes.WsSecurity10;
             FragmentBaseAddress = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0";
             Prefix = "wsse";
             Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
@@ -96,7 +68,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
     {
         public WsSecurity11Constants()
         {
-            EncodingTypes = WsSecurity11EncodingTypes.Instance;
+            EncodingTypes = WsSecurityEncodingTypes.WsSecurity11;
             FragmentBaseAddress = "http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1";
             Namespace = "http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd";
             Prefix = "wsse11";

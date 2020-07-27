@@ -29,7 +29,6 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using Microsoft.IdentityModel.Logging;
-using Microsoft.IdentityModel.Protocols.WsTrust;
 using Microsoft.IdentityModel.Protocols.WsUtility;
 using Microsoft.IdentityModel.Xml;
 
@@ -39,22 +38,21 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
 {
     /// <summary>
     /// Base class for support of serializing versions of WS-Security.
+    /// see: https://www.oasis-open.org/committees/download.php/16790/wss-v1.1-spec-os-SOAPMessageSecurity.pdf (1.1)
+    /// see: http://docs.oasis-open.org/wss-m/wss/v1.1.1/os/wss-SOAPMessageSecurity-v1.1.1-os.html (1.1.1)
     /// </summary>
     public static class WsSecuritySerializer
     {
-        public static XmlElement GetXmlElement(SecurityTokenReference securityTokenReference, WsSerializationContext wsSerializationContext)
+        public static XmlElement GetXmlElement(SecurityTokenReference securityTokenReference)
         {
             if (securityTokenReference == null)
                 throw LogHelper.LogArgumentNullException(nameof(securityTokenReference));
 
-            if (wsSerializationContext == null)
-                throw LogHelper.LogArgumentNullException(nameof(wsSerializationContext));
-
             using (var stream = new MemoryStream())
             {
                 using (var writer = XmlDictionaryWriter.CreateTextWriter(stream, Encoding.UTF8, false))
                 {
-                    WsSecuritySerializer.WriteSecurityTokenReference(writer, wsSerializationContext, securityTokenReference);
+                    WsSecuritySerializer.WriteSecurityTokenReference(writer, securityTokenReference);
                     writer.Flush();
                     stream.Seek(0, SeekOrigin.Begin);
                     var dom = new XmlDocument
@@ -71,30 +69,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             }
         }
 
-        internal static XmlElement GetXmlElement (SecurityTokenReference securityTokenReference, WsTrustVersion wsTrustVersion)
-        {
-            using (var stream = new MemoryStream())
-            {
-                using (var writer = XmlDictionaryWriter.CreateTextWriter(stream, Encoding.UTF8, false))
-                {
-                    WriteSecurityTokenReference(writer, new WsSerializationContext(wsTrustVersion), securityTokenReference);
-                    writer.Flush();
-                    stream.Seek(0, SeekOrigin.Begin);
-                    var dom = new XmlDocument
-                    {
-                        PreserveWhitespace = true
-                    };
-
-                    using (var textReader = new XmlTextReader(stream) { DtdProcessing = DtdProcessing.Prohibit })
-                    {
-                        dom.Load(textReader);
-                        return dom.DocumentElement;
-                    }
-                }
-            }
-        }
-
-        internal static SecurityTokenReference ReadSecurityTokenReference(XmlDictionaryReader reader, WsSerializationContext serializationContext)
+        internal static SecurityTokenReference ReadSecurityTokenReference(XmlDictionaryReader reader)
         {
             //  <wsse:SecurityTokenReference wsu:Id="...",
             //                               wsse:TokenType="...",
@@ -105,15 +80,15 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             XmlAttributeHolder[] xmlAttributes = XmlAttributeHolder.ReadAttributes(reader);
             var securityTokenReference = new SecurityTokenReference
             {
-                Id = XmlAttributeHolder.GetAttribute(xmlAttributes, WsUtilityAttributes.Id, serializationContext.SecurityConstants.Namespace),
-                TokenType = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.TokenType, serializationContext.SecurityConstants.Namespace),
-                Usage = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.Usage, serializationContext.SecurityConstants.Namespace)
+                Id = XmlAttributeHolder.GetAttribute(xmlAttributes, WsUtilityAttributes.Id, WsSecurityConstants.WsSecurity10.Namespace),
+                TokenType = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.TokenType, WsSecurityConstants.WsSecurity11.Namespace),
+                Usage = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.Usage, WsSecurityConstants.WsSecurity10.Namespace)
             };
 
             bool isEmptyElement = reader.IsEmptyElement;
             reader.ReadStartElement();
             if (reader.IsStartElement() && reader.IsLocalName(WsSecurityElements.KeyIdentifier))
-                securityTokenReference.KeyIdentifier = ReadKeyIdentifier(reader, serializationContext);
+                securityTokenReference.KeyIdentifier = ReadKeyIdentifier(reader);
 
             if (!isEmptyElement)
                 reader.ReadEndElement();
@@ -121,7 +96,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             return securityTokenReference;
         }
 
-        internal static KeyIdentifier ReadKeyIdentifier(XmlDictionaryReader reader, WsSerializationContext serializationContext)
+        internal static KeyIdentifier ReadKeyIdentifier(XmlDictionaryReader reader)
         {
             //  <wsse:KeyIdentifier wsu:Id="..."
             //                      ValueType="..."
@@ -134,9 +109,9 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
 
             var keyIdentifier = new KeyIdentifier
             {
-                Id = XmlAttributeHolder.GetAttribute(xmlAttributes, WsUtilityAttributes.Id, serializationContext.AddressingConstants.Namespace),
-                EncodingType = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.EncodingType, serializationContext.SecurityConstants.Namespace),
-                ValueType = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.ValueType, serializationContext.SecurityConstants.Namespace)
+                Id = XmlAttributeHolder.GetAttribute(xmlAttributes, WsUtilityAttributes.Id, WsSecurityConstants.WsSecurity10.Namespace),
+                EncodingType = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.EncodingType, WsSecurityConstants.WsSecurity10.Namespace),
+                ValueType = XmlAttributeHolder.GetAttribute(xmlAttributes, WsSecurityAttributes.ValueType, WsSecurityConstants.WsSecurity10.Namespace)
             };
 
             reader.ReadStartElement();
@@ -149,7 +124,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             return keyIdentifier;
         }
 
-        internal static void WriteKeyIdentifier(XmlDictionaryWriter writer, WsSerializationContext serializationContext, KeyIdentifier keyIdentifier)
+        internal static void WriteKeyIdentifier(XmlDictionaryWriter writer, KeyIdentifier keyIdentifier)
         {
             //  <wsse:KeyIdentifier wsu:Id="..."
             //                      ValueType="..."
@@ -157,7 +132,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             //      ...
             //  </wsse:KeyIdentifier>
 
-            writer.WriteStartElement(serializationContext.SecurityConstants.Prefix, WsSecurityElements.KeyIdentifier, serializationContext.SecurityConstants.Namespace);
+            writer.WriteStartElement(WsSecurityConstants.WsSecurity10.Prefix, WsSecurityElements.KeyIdentifier, WsSecurityConstants.WsSecurity10.Namespace);
 
             if (!string.IsNullOrEmpty(keyIdentifier.Id))
                 writer.WriteAttributeString(WsUtilityAttributes.Id, keyIdentifier.Id);
@@ -174,7 +149,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             writer.WriteEndElement();
         }
 
-        internal static void WriteSecurityTokenReference(XmlDictionaryWriter writer, WsSerializationContext serializationContext, SecurityTokenReference securityTokenReference)
+        internal static void WriteSecurityTokenReference(XmlDictionaryWriter writer, SecurityTokenReference securityTokenReference)
         {
             // <wsse:SecurityTokenReference>
             //      <wsse:KeyIdentifier wsu:Id="..."
@@ -184,10 +159,9 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
             //      </wsse:KeyIdentifier>
             //  </wsse:SecurityTokenReference>
 
-            writer.WriteStartElement(serializationContext.SecurityConstants.Prefix, WsSecurityElements.SecurityTokenReference, serializationContext.SecurityConstants.Namespace);
+            writer.WriteStartElement(WsSecurityConstants.WsSecurity10.Prefix, WsSecurityElements.SecurityTokenReference, WsSecurityConstants.WsSecurity10.Namespace);
 
-            // the SecurityTokenReference must be in the wsse namespace of the security binding that will communicate with the relying party.
-            // For Saml2 tokens, the 'TokenType must be in wsse 1.1 namespace
+            // For Saml2 tokens, the 'TokenType' was defined in must be in wsse1.1 namespace
             if (!string.IsNullOrEmpty(securityTokenReference.TokenType))
                 writer.WriteAttributeString(WsSecurityAttributes.TokenType, WsSecurityConstants.WsSecurity11.Namespace, securityTokenReference.TokenType);
 
@@ -195,7 +169,7 @@ namespace Microsoft.IdentityModel.Protocols.WsSecurity
                 writer.WriteAttributeString(WsUtilityAttributes.Id, securityTokenReference.Id);
 
             if (securityTokenReference.KeyIdentifier != null)
-                WriteKeyIdentifier(writer, serializationContext, securityTokenReference.KeyIdentifier);
+                WriteKeyIdentifier(writer, securityTokenReference.KeyIdentifier);
 
             writer.WriteEndElement();
         }

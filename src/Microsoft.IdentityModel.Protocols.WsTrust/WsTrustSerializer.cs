@@ -310,7 +310,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
             throw XmlUtil.LogReadException(LogMessages.IDX15101, reader.ReadOuterXml());
         }
 
-        private static SecurityTokenReference ReadReference(XmlDictionaryReader reader, WsSerializationContext serializationContext, string elementName)
+        private static SecurityTokenReference ReadReference(XmlDictionaryReader reader, string elementName)
         {
             //  <wsse:SecurityTokenReference ...>
             //      ...
@@ -320,7 +320,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
             {
                 bool isEmptyElement = reader.IsEmptyElement;
                 reader.ReadStartElement();
-                SecurityTokenReference tokenReference = WsSecuritySerializer.ReadSecurityTokenReference(reader, serializationContext);
+                SecurityTokenReference tokenReference = WsSecuritySerializer.ReadSecurityTokenReference(reader);
 
                 if (!isEmptyElement)
                     reader.ReadEndElement();
@@ -613,7 +613,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
 
             try
             {
-                return ReadReference(reader, serializationContext, WsTrustElements.RequestedAttachedReference);
+                return ReadReference(reader, WsTrustElements.RequestedAttachedReference);
             }
             catch (Exception ex)
             {
@@ -768,7 +768,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
 
             try
             {
-                return ReadReference(reader, serializationContext, WsTrustElements.RequestedUnattachedReference);
+                return ReadReference(reader, WsTrustElements.RequestedUnattachedReference);
             }
             catch (Exception ex)
             {
@@ -900,7 +900,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
                 UseKey useKey = null;
 
                 if (reader.IsStartElement() && reader.IsLocalName(WsSecurityElements.SecurityTokenReference))
-                    useKey = new UseKey(new SecurityTokenElement(WsSecuritySerializer.ReadSecurityTokenReference(reader, serializationContext)));
+                    useKey = new UseKey(new SecurityTokenElement(WsSecuritySerializer.ReadSecurityTokenReference(reader)));
 
                 if (!string.IsNullOrEmpty(signatureId))
                     useKey.SignatureId = signatureId;
@@ -1250,6 +1250,9 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
                 if (trustRequest.UseKey != null)
                     WriteUseKey(writer, serializationContext, trustRequest.UseKey);
 
+                if (trustRequest.Entropy != null)
+                    WriteEntropy(writer, serializationContext, trustRequest.Entropy);
+
                 foreach (XmlElement xmlElement in trustRequest.AdditionalXmlElements)
                     xmlElement.WriteTo(writer);
 
@@ -1376,7 +1379,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
             try
             {
                 writer.WriteStartElement(serializationContext.TrustConstants.Prefix, WsTrustElements.RequestedAttachedReference, serializationContext.TrustConstants.Namespace);
-                WsSecuritySerializer.WriteSecurityTokenReference(writer, serializationContext, securityTokenReference);
+                WsSecuritySerializer.WriteSecurityTokenReference(writer, securityTokenReference);
                 writer.WriteEndElement();
             }
             catch (Exception ex)
@@ -1512,7 +1515,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
             try
             {
                 writer.WriteStartElement(serializationContext.TrustConstants.Prefix, WsTrustElements.RequestedUnattachedReference, serializationContext.TrustConstants.Namespace);
-                WsSecuritySerializer.WriteSecurityTokenReference(writer, serializationContext, securityTokenReference);
+                WsSecuritySerializer.WriteSecurityTokenReference(writer, securityTokenReference);
                 writer.WriteEndElement();
             }
             catch (Exception ex)
@@ -1596,7 +1599,7 @@ namespace Microsoft.IdentityModel.Protocols.WsTrust
                     writer.WriteAttributeString(WsTrustAttributes.Sig, useKey.SignatureId);
 
                 if (useKey.SecurityTokenElement.SecurityTokenReference != null)
-                    WsSecuritySerializer.WriteSecurityTokenReference(writer, serializationContext, useKey.SecurityTokenElement.SecurityTokenReference);
+                    WsSecuritySerializer.WriteSecurityTokenReference(writer, useKey.SecurityTokenElement.SecurityTokenReference);
 
                 writer.WriteEndElement();
             }

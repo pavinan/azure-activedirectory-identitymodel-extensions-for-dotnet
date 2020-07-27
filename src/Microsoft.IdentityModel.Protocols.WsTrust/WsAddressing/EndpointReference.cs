@@ -36,11 +36,6 @@ namespace Microsoft.IdentityModel.Protocols.WsAddressing
 {
     public class EndpointReference
     {
-        public EndpointReference()
-        {
-
-        }
-
         public EndpointReference(string uri)
         {
             if (uri == null)
