@@ -220,7 +220,7 @@ namespace Microsoft.IdentityModel.Tokens
         /// <returns>A <see cref="SignatureProvider"/> that can be used to create a signature using the <see cref="SecurityKey"/> and algorithm.</returns>
         public virtual SignatureProvider CreateForSigning(SecurityKey key, string algorithm)
         {
-            return CreateForSigning(key, algorithm, true);
+            return CreateForSigning(key, algorithm, CacheSignatureProviders);
         }
 
 #pragma warning disable 1573
@@ -251,7 +251,7 @@ namespace Microsoft.IdentityModel.Tokens
         /// <returns>A <see cref="SignatureProvider"/> that can be used to validate a signature using the <see cref="SecurityKey"/> and algorithm.</returns>
         public virtual SignatureProvider CreateForVerifying(SecurityKey key, string algorithm)
         {
-            return CreateForVerifying(key, algorithm, true);
+            return CreateForVerifying(key, algorithm, CacheSignatureProviders);
         }
 
 #pragma warning disable 1573
