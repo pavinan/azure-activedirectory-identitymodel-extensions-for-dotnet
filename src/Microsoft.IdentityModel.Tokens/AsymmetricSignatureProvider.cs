@@ -38,7 +38,7 @@ namespace Microsoft.IdentityModel.Tokens
     public class AsymmetricSignatureProvider : SignatureProvider
     {
         private bool _disposed;
-        private AsymmetricAdapter _asymmetricAdapter;
+        private ObjectPool<AsymmetricAdapter> _asymmetricAdapterObjectPool;
         private CryptoProviderFactory _cryptoProviderFactory;
         private IReadOnlyDictionary<string, int> _minimumAsymmetricKeySizeInBitsForSigningMap;
         private IReadOnlyDictionary<string, int> _minimumAsymmetricKeySizeInBitsForVerifyingMap;
@@ -154,7 +154,7 @@ namespace Microsoft.IdentityModel.Tokens
                 throw LogHelper.LogExceptionMessage(new NotSupportedException(LogHelper.FormatInvariant(LogMessages.IDX10634, (algorithm ?? "null"), key)));
 
             ValidateAsymmetricSecurityKeySize(key, algorithm, willCreateSignatures);
-            _asymmetricAdapter = ResolveAsymmetricAdapter(jsonWebKey?.ConvertedSecurityKey ?? key, algorithm, willCreateSignatures);
+            _asymmetricAdapterObjectPool = new ObjectPool<AsymmetricAdapter>(AsymmetricAdapterFactory);
             WillCreateSignatures = willCreateSignatures;
         }
 
@@ -208,6 +208,12 @@ namespace Microsoft.IdentityModel.Tokens
             var hashAlgoritmName = GetHashAlgorithmName(algorithm);
             return new AsymmetricAdapter(key, algorithm, _cryptoProviderFactory.CreateHashAlgorithm(hashAlgoritmName), hashAlgoritmName, requirePrivateKey);
         }
+
+        private AsymmetricAdapter AsymmetricAdapterFactory()
+        {
+            var hashAlgoritmName = GetHashAlgorithmName(Algorithm);
+            return new AsymmetricAdapter(Key, Algorithm, _cryptoProviderFactory.CreateHashAlgorithm(hashAlgoritmName), hashAlgoritmName, WillCreateSignatures);
+        }
 #endif
 
 #if NET45
@@ -238,6 +244,11 @@ namespace Microsoft.IdentityModel.Tokens
         {
             return new AsymmetricAdapter(key, algorithm, _cryptoProviderFactory.CreateHashAlgorithm(GetHashAlgorithmString(algorithm)), requirePrivateKey);
         }
+
+        private AsymmetricAdapter AsymmetricAdapterFactory()
+        {
+            return new AsymmetricAdapter(Key, Algorithm, _cryptoProviderFactory.CreateHashAlgorithm(GetHashAlgorithmString(Algorithm)), WillCreateSignatures);
+        }
 #endif
 
         /// <summary>
@@ -260,14 +271,20 @@ namespace Microsoft.IdentityModel.Tokens
                 throw LogHelper.LogExceptionMessage(new ObjectDisposedException(GetType().ToString()));
             }
 
+            AsymmetricAdapter asym = null;
             try
             {
-                return _asymmetricAdapter.Sign(input);
+                asym = _asymmetricAdapterObjectPool.Allocate();
+                return asym.Sign(input);
             }
             catch
             {
                 CryptoProviderCache?.TryRemove(this);
                 throw;
+            }
+            finally
+            {
+                _asymmetricAdapterObjectPool.Free(asym);
             }
         }
 
@@ -350,14 +367,21 @@ namespace Microsoft.IdentityModel.Tokens
                 throw LogHelper.LogExceptionMessage(new ObjectDisposedException(GetType().ToString()));
             }
 
+            AsymmetricAdapter asym = null;
             try
             {
-                return _asymmetricAdapter.Verify(input, signature);
+
+                asym = _asymmetricAdapterObjectPool.Allocate();
+                return asym.Verify(input, signature);
             }
             catch
             {
                 CryptoProviderCache?.TryRemove(this);
                 throw;
+            }
+            finally
+            {
+                _asymmetricAdapterObjectPool.Free(asym);
             }
         }
 
@@ -374,7 +398,8 @@ namespace Microsoft.IdentityModel.Tokens
                 if (disposing)
                 {
                     CryptoProviderCache?.TryRemove(this);
-                    _asymmetricAdapter.Dispose();
+                    // TODO - brentsch, need to dispose of all adapters in pool.
+                    //_asymmetricAdapter.Dispose();
                 }
             }
         }
