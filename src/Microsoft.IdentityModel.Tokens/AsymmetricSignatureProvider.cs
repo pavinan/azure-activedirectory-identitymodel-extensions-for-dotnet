@@ -203,12 +203,6 @@ namespace Microsoft.IdentityModel.Tokens
             return SupportedAlgorithms.GetHashAlgorithmName(algorithm);
         }
 
-        private AsymmetricAdapter ResolveAsymmetricAdapter(SecurityKey key, string algorithm, bool requirePrivateKey)
-        {
-            var hashAlgoritmName = GetHashAlgorithmName(algorithm);
-            return new AsymmetricAdapter(key, algorithm, _cryptoProviderFactory.CreateHashAlgorithm(hashAlgoritmName), hashAlgoritmName, requirePrivateKey);
-        }
-
         private AsymmetricAdapter AsymmetricAdapterFactory()
         {
             var hashAlgoritmName = GetHashAlgorithmName(Algorithm);
@@ -231,18 +225,6 @@ namespace Microsoft.IdentityModel.Tokens
                 throw LogHelper.LogArgumentNullException(nameof(algorithm));
 
             return SupportedAlgorithms.GetDigestFromSignatureAlgorithm(algorithm);
-        }
-
-        /// <summary>
-        /// This method is here, just to keep the #if out of the constructor.
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="algorithm"></param>
-        /// <param name="requirePrivateKey"></param>
-        /// <returns></returns>
-        private AsymmetricAdapter ResolveAsymmetricAdapter(SecurityKey key, string algorithm, bool requirePrivateKey)
-        {
-            return new AsymmetricAdapter(key, algorithm, _cryptoProviderFactory.CreateHashAlgorithm(GetHashAlgorithmString(algorithm)), requirePrivateKey);
         }
 
         private AsymmetricAdapter AsymmetricAdapterFactory()
