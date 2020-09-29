@@ -37,9 +37,9 @@ namespace Microsoft.IdentityModel.Tokens
     /// </summary>
     public class AsymmetricSignatureProvider : SignatureProvider
     {
-        private bool _disposed;
         private ObjectPool<AsymmetricAdapter> _asymmetricAdapterObjectPool;
         private CryptoProviderFactory _cryptoProviderFactory;
+        private bool _disposed;
         private IReadOnlyDictionary<string, int> _minimumAsymmetricKeySizeInBitsForSigningMap;
         private IReadOnlyDictionary<string, int> _minimumAsymmetricKeySizeInBitsForVerifyingMap;
 
@@ -153,10 +153,10 @@ namespace Microsoft.IdentityModel.Tokens
             if (!_cryptoProviderFactory.IsSupportedAlgorithm(algorithm, key))
                 throw LogHelper.LogExceptionMessage(new NotSupportedException(LogHelper.FormatInvariant(LogMessages.IDX10634, (algorithm ?? "null"), key)));
 
-            ValidateAsymmetricSecurityKeySize(key, algorithm, willCreateSignatures);
-            _asymmetricAdapterObjectPool = new ObjectPool<AsymmetricAdapter>(AsymmetricAdapterFactory);
             WillCreateSignatures = willCreateSignatures;
-        }
+            ValidateAsymmetricSecurityKeySize(key, algorithm, WillCreateSignatures);
+            _asymmetricAdapterObjectPool = new ObjectPool<AsymmetricAdapter>(CreateAsymmetricAdapter);
+    }
 
         /// <summary>
         /// Gets the mapping from algorithm to the minimum <see cref="AsymmetricSecurityKey"/>.KeySize for creating signatures.
@@ -203,7 +203,7 @@ namespace Microsoft.IdentityModel.Tokens
             return SupportedAlgorithms.GetHashAlgorithmName(algorithm);
         }
 
-        private AsymmetricAdapter AsymmetricAdapterFactory()
+        private AsymmetricAdapter CreateAsymmetricAdapter()
         {
             var hashAlgoritmName = GetHashAlgorithmName(Algorithm);
             return new AsymmetricAdapter(Key, Algorithm, _cryptoProviderFactory.CreateHashAlgorithm(hashAlgoritmName), hashAlgoritmName, WillCreateSignatures);
@@ -227,7 +227,7 @@ namespace Microsoft.IdentityModel.Tokens
             return SupportedAlgorithms.GetDigestFromSignatureAlgorithm(algorithm);
         }
 
-        private AsymmetricAdapter AsymmetricAdapterFactory()
+        private AsymmetricAdapter CreateAsymmetricAdapter()
         {
             return new AsymmetricAdapter(Key, Algorithm, _cryptoProviderFactory.CreateHashAlgorithm(GetHashAlgorithmString(Algorithm)), WillCreateSignatures);
         }
@@ -352,7 +352,6 @@ namespace Microsoft.IdentityModel.Tokens
             AsymmetricAdapter asym = null;
             try
             {
-
                 asym = _asymmetricAdapterObjectPool.Allocate();
                 return asym.Verify(input, signature);
             }
@@ -380,8 +379,7 @@ namespace Microsoft.IdentityModel.Tokens
                 if (disposing)
                 {
                     CryptoProviderCache?.TryRemove(this);
-                    // TODO - brentsch, need to dispose of all adapters in pool.
-                    //_asymmetricAdapter.Dispose();
+//                    foreach(var asymmetricAdapter in _asymmetricAdapterObjectPool)
                 }
             }
         }

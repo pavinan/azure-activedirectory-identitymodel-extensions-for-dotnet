@@ -28,7 +28,6 @@
 using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using Microsoft.IdentityModel.TestUtils;
 using Xunit;
 

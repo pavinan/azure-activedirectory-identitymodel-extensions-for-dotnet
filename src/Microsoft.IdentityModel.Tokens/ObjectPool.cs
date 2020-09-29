@@ -26,7 +26,7 @@ namespace Microsoft.IdentityModel.Tokens
     /// Rationale: 
     ///    If there is no intent for reusing the object, do not use pool - just use "new". 
     /// </summary>
-    internal sealed class ObjectPool<T> where T : class
+    internal sealed class ObjectPool<T> where T : class, IDisposable
     {
         private struct Element
         {
